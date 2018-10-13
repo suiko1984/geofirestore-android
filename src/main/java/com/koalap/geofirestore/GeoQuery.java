@@ -31,7 +31,6 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -45,13 +44,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 /**
  * A GeoQuery object can be used for geo queries in a given circle. The GeoQuery class is thread safe.
  */
 public class GeoQuery {
     private static final int KILOMETER_TO_METER = 1000;
+    private ListenerRegistration removeListerRegistration;
 
     private static class LocationInfo {
         final GeoLocation location;
@@ -212,10 +210,13 @@ public class GeoQuery {
             if (!oldQueries.contains(query)) {
                 outstandingQueries.add(query);
                 CollectionReference collectionReference = this.geoFire.getCollectionReference();
-                Query firebaseQuery = collectionReference.orderBy("g").startAt(query.getStartValue()).endAt(query.getEndValue());
-                final ListenerRegistration registration = firebaseQuery.addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                Query filterQuery = this.geoFire.getQuery();
+                Query firebaseQuery = (filterQuery != null ? filterQuery : collectionReference).orderBy("g").startAt(query.getStartValue()).endAt(query.getEndValue());
+                final ListenerRegistration registration = firebaseQuery.addSnapshotListener((queryDocumentSnapshots, e) -> {
+                    try {
+                        if (e != null) {
+                            throw e;
+                        }
                         for (DocumentChange dc : queryDocumentSnapshots.getDocumentChanges()) {
                             switch (dc.getType()) {
                                 case ADDED:
@@ -229,6 +230,9 @@ public class GeoQuery {
                                     break;
                             }
                         }
+                    }
+                    catch (Exception exception) {
+                        exception.printStackTrace();
                     }
                 });
                 addValueToReadyListener(firebaseQuery, query);
@@ -276,18 +280,13 @@ public class GeoQuery {
         final String key = documentSnapshot.getId();
         final LocationInfo info = this.locationInfos.get(key);
         if (info != null) {
-            this.geoFire.getCollectionReference().document(key).addSnapshotListener((documentSnapshot1, e) -> {
+            removeListerRegistration = this.geoFire.getCollectionReference().document(key).addSnapshotListener((documentSnapshot1, e) -> {
+                removeListerRegistration.remove();
                 synchronized(GeoQuery.this) {
-                    GeoLocation location = GeoFire.getLocationValue(documentSnapshot1);
-                    GeoHash hash = (location != null) ? new GeoHash(location) : null;
-                    if (hash == null || !GeoQuery.this.geoHashQueriesContainGeoHash(hash)) {
-                        final LocationInfo info1 = GeoQuery.this.locationInfos.get(key);
-                        GeoQuery.this.locationInfos.remove(key);
-                        if (info1 != null && info1.inGeoQuery) {
-                            for (final GeoQueryDataEventListener listener: GeoQuery.this.eventListeners) {
-                                GeoQuery.this.geoFire.raiseEvent(() -> listener.onDataExited(info1.documentSnapshot));
-                            }
-                        }
+                    final LocationInfo info1 = GeoQuery.this.locationInfos.get(key);
+                    GeoQuery.this.locationInfos.remove(key);
+                    for (final GeoQueryDataEventListener listener: GeoQuery.this.eventListeners) {
+                        GeoQuery.this.geoFire.raiseEvent(() -> listener.onDataExited(info1.documentSnapshot));
                     }
                 }
             });
