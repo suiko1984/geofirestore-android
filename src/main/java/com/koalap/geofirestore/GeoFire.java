@@ -36,6 +36,7 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
 import com.koalap.geofirestore.core.GeoHash;
 
@@ -120,15 +121,35 @@ public class GeoFire {
     }
 
     private final CollectionReference collectionReference;
+    private Query query;
     private final EventRaiser eventRaiser;
 
     /**
      * Creates a new GeoFire instance at the given Firebase reference.
      *
-     * @param documentReference The Firebase reference this GeoFire instance uses
+     * @param collectionReference The Firebase reference this GeoFire instance uses
      */
-    public GeoFire(CollectionReference documentReference) {
-        this.collectionReference = documentReference;
+    public GeoFire(CollectionReference collectionReference) {
+        this.collectionReference = collectionReference;
+        EventRaiser eventRaiser;
+        try {
+            eventRaiser = new AndroidEventRaiser();
+        } catch (Throwable e) {
+            // We're not on Android, use the ThreadEventRaiser
+            eventRaiser = new ThreadEventRaiser();
+        }
+        this.eventRaiser = eventRaiser;
+    }
+
+    /**
+     * Creates a new GeoFire instance at the given Firebase reference.
+     *
+     * @param collectionReference The Firebase reference this GeoFire instance uses
+     * @param query The query to add filters to the collection
+     */
+    public GeoFire(CollectionReference collectionReference, Query query) {
+        this.collectionReference = collectionReference;
+        this.query = query;
         EventRaiser eventRaiser;
         try {
             eventRaiser = new AndroidEventRaiser();
@@ -144,6 +165,13 @@ public class GeoFire {
      */
     public CollectionReference getCollectionReference() {
         return this.collectionReference;
+    }
+
+    /**
+     * @return The query to add filters to the collection
+     */
+    public Query getQuery() {
+        return query;
     }
 
     /**

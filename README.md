@@ -205,6 +205,20 @@ You can call either `removeGeoQueryEventListener` to remove a
 single event listener or `removeAllListeners` to remove all event listeners
 for a `GeoQuery`.
 
+##### Compound query
+
+Since GeoFirestore 1.1.0, you can filter the geo query by adding "whereEqualTo", "whereArrayContains", and/or "limit" criterias.
+
+Note that in order to "queryAtLocation", GeoFirestore natively uses an algorithm that already performs a query using "orderBy("g").startAt(query.getStartValue()).endAt(query.getEndValue())".
+This is why it is not permitted to add "whereGreater", "whereLess", "orderBy" compound queries (see Query limitations section on this link: https://firebase.google.com/docs/firestore/query-data/queries?authuser=0#query_limitations).
+
+Beware that a StatusException may occur if you have not created an index on Firestore console.
+
+```java
+CollectionReference ref = FirebaseFirestore.getInstance().collection("collection");
+GeoFire geoFire = new GeoFire(ref, ref.whereEqualTo("availability", true);
+```
+
 ##### Data Events
 
 If you are storing model data and geo data in the same database location, you may
