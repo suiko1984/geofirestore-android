@@ -28,23 +28,23 @@ package com.koalap.geofirestore;
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import android.support.annotation.NonNull;
-
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
 import com.koalap.geofirestore.core.GeoHash;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import androidx.annotation.NonNull;
 
 /**
  * A GeoFire instance is used to store geo location data in Firebase.
@@ -103,12 +103,12 @@ public class GeoFire {
     static GeoLocation getLocationValue(DocumentSnapshot documentSnapshot) {
         try {
             Map<String, Object> data = documentSnapshot.getData();
-            List<?> location = (List<?>) data.get("l");
-            Number latitudeObj = (Number) location.get(0);
-            Number longitudeObj = (Number) location.get(1);
+            GeoPoint location = (GeoPoint) data.get("l");
+            Number latitudeObj = location.getLatitude();
+            Number longitudeObj = location.getLongitude();
             double latitude = latitudeObj.doubleValue();
             double longitude = longitudeObj.doubleValue();
-            if (location.size() == 2 && GeoLocation.coordinatesValid(latitude, longitude)) {
+            if (GeoLocation.coordinatesValid(latitude, longitude)) {
                 return new GeoLocation(latitude, longitude);
             } else {
                 return null;
@@ -172,6 +172,14 @@ public class GeoFire {
      */
     public Query getQuery() {
         return query;
+    }
+
+    /**
+     * @return Set the query to add filters to the collection
+     * @param query This will be added to the collection
+     */
+    public void setQuery(final Query query) {
+        this.query = query;
     }
 
     /**
