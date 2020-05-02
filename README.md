@@ -205,6 +205,12 @@ You can call either `removeGeoQueryEventListener` to remove a
 single event listener or `removeAllListeners` to remove all event listeners
 for a `GeoQuery`.
 
+##### Read data once
+
+Since GeoFiretore 1.2.0, in some cases you may want a callback to be called once and then immediately removed, such as when initializing a UI element that you don't expect to change. You can use the addGeoQueryForSingleValueEvent() method to simplify this scenario: it triggers once and then does not trigger again.
+
+This is useful for data that only needs to be loaded once and isn't expected to change frequently or require active listening.
+
 ##### Compound query
 
 Since GeoFirestore 1.1.0, you can filter the geo query by adding "whereEqualTo", "whereArrayContains", and/or "limit" criterias.

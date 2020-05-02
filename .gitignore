@@ -1,36 +1,66 @@
-#built application files
+# Created by https://www.gitignore.io
+
+### Android ###
+# Built application files
 *.apk
 *.ap_
 
-# files for the dex VM
+# Files for the Dalvik VM
 *.dex
 
 # Java class files
 *.class
 
-# generated files
+# Generated files
 bin/
 gen/
+
+# Gradle files
+.gradle/
+build/
+/*/build/
 
 # Local configuration file (sdk path, etc)
 local.properties
 
-# Windows thumbnail db
+# Log Files
+*.log
+
+### Android Patch ###
+gen-external-apklibs
+
+# OS-specific files
+**/.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# OSX files
-.DS_Store
+### Intellij ###
+# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm
 
-# Eclipse project files
-.classpath
-.project
-
-# Android Studio
 *.iml
-.idea
-#.idea/workspace.xml - remove # and delete .idea if it better suit your needs.
-.gradle
-build/
 
-#NDK
-obj/
+## Directory-based project format:
+.idea/
+
+## File-based project format:
+*.ipr
+*.iws
+
+# IntelliJ
+/out/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+proguard_mapping.txt
+captures/
+
+wh.properties
+
+## Jacoco
+*.exec
+codemr/

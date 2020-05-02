@@ -27,6 +27,9 @@ package com.koalap.geofirestore;
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.TaskCompletionSource;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -38,9 +41,11 @@ import com.koalap.geofirestore.core.GeoHash;
 import com.koalap.geofirestore.core.GeoHashQuery;
 import com.koalap.geofirestore.util.GeoUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -258,10 +263,43 @@ public class GeoQuery {
         checkAndFireReady();
     }
 
+    private void setupQueriesForSingleValueEvent(final GeoQueryValueEventListener listener) {
+        Set<GeoHashQuery> newQueries = GeoHashQuery.queriesAtLocation(
+                center,
+                radius
+        );
+        List<TaskCompletionSource<QuerySnapshot>> taskCompletionSourceList = new ArrayList<>();
+        List<DocumentChange> result = new ArrayList<>();
+        for (final GeoHashQuery query : newQueries) {
+            CollectionReference collectionReference = this.geoFire.getCollectionReference();
+            Query filterQuery = this.geoFire.getQuery();
+            Query firebaseQuery = (filterQuery != null ? filterQuery : collectionReference)
+                    .orderBy("g").startAt(query.getStartValue()).endAt(query.getEndValue());
+            TaskCompletionSource<QuerySnapshot> completionSource = new TaskCompletionSource<>();
+            firebaseQuery.get()
+                    .addOnCompleteListener(task -> {
+                        QuerySnapshot querySnapshot = task.getResult();
+                        result.addAll(querySnapshot.getDocumentChanges());
+                        completionSource.setResult(querySnapshot);
+                    });
+            taskCompletionSourceList.add(completionSource);
+        }
+        List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+        for (TaskCompletionSource<QuerySnapshot> task : taskCompletionSourceList) {
+            tasks.add(task.getTask());
+        }
+        Tasks.whenAll(tasks).addOnCompleteListener(task -> {
+            listener.onDocumentChange(result);
+        });
+    }
+
     private void childAdded(DocumentSnapshot documentSnapshot) {
         GeoLocation location = GeoFire.getLocationValue(documentSnapshot);
         if (location != null) {
-            this.updateLocationInfo(documentSnapshot, location);
+            this.updateLocationInfo(
+                    documentSnapshot,
+                    location
+            );
         } else {
             // throw an error in future?
         }
@@ -333,11 +371,20 @@ public class GeoQuery {
     }
 
     /**
+     * Adds a single listener to this GeoQuery. The callback will only be fired once. There is no need
+     * to remove this listener after usage
+     *
+     * @param listener The listener to add
+     */
+    public synchronized void addGeoQueryForSingleValueEvent(final GeoQueryValueEventListener listener) {
+        this.setupQueriesForSingleValueEvent(listener);
+    }
+
+    /**
      * Removes an event listener.
      *
-     * @throws IllegalArgumentException If the listener was removed already or never added
-     *
      * @param listener The listener to remove
+     * @throws IllegalArgumentException If the listener was removed already or never added
      */
     public synchronized void removeGeoQueryEventListener(GeoQueryEventListener listener) {
         removeGeoQueryEventListener(new EventListenerBridge(listener));
