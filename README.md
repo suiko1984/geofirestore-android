@@ -44,7 +44,7 @@ For Android applications:
 
 ```groovy
 dependencies {
-    implementation 'com.koalap:geofirestore-android:1.2.0'
+    implementation 'com.koalap:geofirestore-android:1.2.1'
 }
 ```
 
@@ -58,7 +58,7 @@ For Android applications:
 <dependency>
   <groupId>com.koalap</groupId>
   <artifactId>geofirestore-android</artifactId>
-  <version>1.2.0</version>
+  <version>1.2.1</version>
 </dependency>
 ```
 
