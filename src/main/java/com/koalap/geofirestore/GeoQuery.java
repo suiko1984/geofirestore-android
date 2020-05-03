@@ -34,6 +34,7 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -340,6 +341,44 @@ public class GeoQuery {
      */
     public synchronized void addGeoQueryEventListener(final GeoQueryEventListener listener) {
         addGeoQueryDataEventListener(new EventListenerBridge(listener));
+    }
+
+    /**
+     * Adds a single listener to this GeoQuery. The callback will only be fired once. There is no need
+     * to remove this listener after usage
+     *
+     * @param listener The listener to add
+     */
+    public synchronized void addGeoQueryDataForSingleValueEvent(final GeoQueryDataValueEventListener listener) {
+        Set<GeoHashQuery> newQueries = GeoHashQuery.queriesAtLocation(
+                center,
+                radius
+        );
+        List<TaskCompletionSource<QuerySnapshot>> taskCompletionSourceList = new ArrayList<>();
+        List<GeoQueryDocumentChange> result = new ArrayList<>();
+        for (final GeoHashQuery query : newQueries) {
+            CollectionReference collectionReference = this.geoFire.getCollectionReference();
+            Query filterQuery = this.geoFire.getQuery();
+            Query firebaseQuery = (filterQuery != null ? filterQuery : collectionReference)
+                    .orderBy("g").startAt(query.getStartValue()).endAt(query.getEndValue());
+            TaskCompletionSource<QuerySnapshot> completionSource = new TaskCompletionSource<>();
+            firebaseQuery.get()
+                    .addOnCompleteListener(task -> {
+                        QuerySnapshot querySnapshot = task.getResult();
+                        for (DocumentChange dc : querySnapshot.getDocumentChanges()) {
+                            result.add(new GeoQueryDocumentChange(dc.getDocument(), (GeoPoint)dc.getDocument().getData().get("l")));
+                        }
+                        completionSource.setResult(querySnapshot);
+                    });
+            taskCompletionSourceList.add(completionSource);
+        }
+        List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+        for (TaskCompletionSource<QuerySnapshot> task : taskCompletionSourceList) {
+            tasks.add(task.getTask());
+        }
+        Tasks.whenAll(tasks).addOnCompleteListener(task -> {
+            listener.onDocumentChange(result);
+        });
     }
 
     /**

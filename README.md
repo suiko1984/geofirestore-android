@@ -207,7 +207,7 @@ for a `GeoQuery`.
 
 ##### Read data once
 
-Since GeoFiretore 1.2.0, in some cases you may want a callback to be called once and then immediately removed, such as when initializing a UI element that you don't expect to change. You can use the addGeoQueryForSingleValueEvent() method to simplify this scenario: it triggers once and then does not trigger again.
+Since GeoFiretore 1.2.0, in some cases you may want a callback to be called once and then immediately removed, such as when initializing a UI element that you don't expect to change. You can use the addGeoQueryForSingleValueEvent() or addGeoQueryDataForSingleValueEvent method to simplify this scenario: it triggers once and then does not trigger again.
 
 This is useful for data that only needs to be loaded once and isn't expected to change frequently or require active listening.
 

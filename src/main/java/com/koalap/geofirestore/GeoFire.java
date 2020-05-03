@@ -205,7 +205,7 @@ public class GeoFire {
         GeoHash geoHash = new GeoHash(location);
         Map<String, Object> updates = new HashMap<>();
         updates.put("g", geoHash.getGeoHashString());
-        updates.put("l", Arrays.asList(location.latitude, location.longitude));
+        updates.put("l", new GeoPoint(location.latitude, location.longitude));
         if (completionListener != null) {
             docRef.set(updates, SetOptions.merge()).addOnCompleteListener(task -> completionListener.onComplete(key, task.getException()));
         } else {
