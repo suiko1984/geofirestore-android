@@ -280,7 +280,12 @@ public class GeoQuery {
             firebaseQuery.get()
                     .addOnCompleteListener(task -> {
                         QuerySnapshot querySnapshot = task.getResult();
-                        result.addAll(querySnapshot.getDocumentChanges());
+                        for (DocumentChange change : querySnapshot.getDocumentChanges()) {
+                            GeoPoint destination = (GeoPoint) change.getDocument().getData().get("l");
+                            if (locationIsInQuery(new GeoLocation(destination.getLatitude(), destination.getLongitude()))) {
+                                result.add(change);
+                            }
+                        }
                         completionSource.setResult(querySnapshot);
                     });
             taskCompletionSourceList.add(completionSource);
@@ -366,7 +371,10 @@ public class GeoQuery {
                     .addOnCompleteListener(task -> {
                         QuerySnapshot querySnapshot = task.getResult();
                         for (DocumentChange dc : querySnapshot.getDocumentChanges()) {
-                            result.add(new GeoQueryDocumentChange(dc.getDocument(), (GeoPoint)dc.getDocument().getData().get("l")));
+                            GeoPoint destination = (GeoPoint)dc.getDocument().getData().get("l");
+                            if (locationIsInQuery(new GeoLocation(destination.getLatitude(), destination.getLongitude()))) {
+                                result.add(new GeoQueryDocumentChange(dc.getDocument(), destination));
+                            }
                         }
                         completionSource.setResult(querySnapshot);
                     });
